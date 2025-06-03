@@ -1,5 +1,5 @@
 # Flood Data Ecosystem - Bihar
-The repository contains codes to extract relevant datasets and the modelling approach used to calculate Risk Scores for Odisha.
+The repository contains codes to extract relevant datasets and the modelling approach used to calculate Risk Scores for Bihar.
 
 
 
@@ -9,7 +9,7 @@ We have developed a data model for combining climate, losses & damages, procurem
 
 
 ## Directory Tree:
-1. [Sources](https://github.com/CivicDataLab/flood-data-ecosystem-Odisha/tree/main/Sources): Contains all data sources along with the scripts used to obtain data from these sources. 
+1. [Sources](https://github.com/CivicDataLab/flood-data-ecosystem-Bihar/tree/main/Sources): Contains all data sources along with the scripts used to obtain data from these sources. 
 
 ## License:
 All content in this repository is licensed under
@@ -21,11 +21,11 @@ All content in this repository is licensed under
 
 ## Procurement Datasets
 
-The repository includes scripts to extract and process various datasets essential for modeling flood risk in Himachal Pradesh. Below are some key datasets:
+The repository includes scripts to extract and process various datasets essential for modeling flood risk in Bihar. Below are some key datasets:
 
 ### Flood Procurement Data
-- **[Flood Tenders Data](https://github.com/CivicDataLab/flood-data-ecosystem-odisha/tree/main/Sources/TENDERS/data/flood_tenders)**:
-  - Contains procurement data related to flood activities in Himachal Pradesh for the financial years 2019 to 2024.
+- **[Flood Tenders Data](https://github.com/CivicDataLab/flood-data-ecosystem-Bihar/tree/main/Sources/TENDERS/data/flood_tenders)**:
+  - Contains procurement data related to flood activities in Bihar for the financial years 2019 to 2024.
 
 - **[Monthly Procurement Data](https://github.com/CivicDataLab/flood-data-ecosystem-odisha/tree/main/Sources/TENDERS/data/monthly_tenders)**:
   - Contains monthly procurement data for Himachal Pradesh from FY 2019 to 2024.
