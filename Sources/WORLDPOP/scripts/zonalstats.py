@@ -1,100 +1,61 @@
-import rasterstats
-import rasterio
-import geopandas as gpd
 import pandas as pd
-import os
 import glob
 import numpy as np
+from sklearn.linear_model import LinearRegression
+import os
+path = os.getcwd()+r'/Sources/WORLDPOP/'
+print(path)
 import sys
-path = os.getcwd()+'/flood-data-ecosystem-Odisha/Sources/WORLDPOP/'
+global projected_variable
+projected_variable = sys.argv[1]
 
-year = "2020"#sys.argv[1]
-tehsil_gdf = gpd.read_file(r'D:\CivicDataLab_IDS-DRR\IDS-DRR_Github\flood-data-ecosystem-Odisha\Maps\od_ids-drr_shapefiles\odisha_block_final.geojson')#os.getcwd()+'/flood-data-ecosystem-Himachal-Pradesh/Maps/BharatMaps_HP_district.geojson')
 
-# TOTAL POPULATION IN EACH TEHSIL
-worldpop_raster = rasterio.open(path+'/data/population_counts/odisha_ppp_{}.tif'.format(year))#UNadj
-worldpop_raster_array = worldpop_raster.read(1)
+def flatten(l):
+    return [item for sublist in l for item in sublist]
 
-sum_dicts = rasterstats.zonal_stats(tehsil_gdf.to_crs(worldpop_raster.crs),
-                                     worldpop_raster_array,
-                                     affine= worldpop_raster.transform,
-                                     stats= ['sum'],
-                                     nodata=worldpop_raster.nodata,
-                                     geojson_out = True)
-
+#files = glob.glob(path+'data/worldpopstats_*.csv')
+files = glob.glob(r"D:\CDL\flood-data-ecosystem-UP\Sources\WORLDPOP\data\worldpopstats_*.csv")
 dfs = []
-for rc in sum_dicts:
-    dfs.append(pd.DataFrame([rc['properties']]))
+for file in files:
+    print("file: "+ file)
+    df = pd.read_csv(file)
+    df['year'] = int(file.split('_')[-1][:-4])
+    dfs.append(df)
 
-pop_zonal_stats_df = pd.concat(dfs).reset_index(drop=True)
-pop_zonal_stats_df = pop_zonal_stats_df.rename(columns={'sum':'sum_population'})
-pop_zonal_stats_df.to_csv(path+"data/worldpopstats_{}.csv".format(year), index=False)
+master_df = pd.concat(dfs)
+master_df = master_df.sort_values(by='year').reset_index(drop=True)
 
+# Define a function to extrapolate population
+def extrapolate_variable(rc_data):
+    years = np.array(rc_data['year'].tolist())
+    values = np.array(rc_data[projected_variable].tolist())
 
-'''
-# AVERAGE SEX RATIO IN EACH RC
-sexratio_raster = rasterio.open(path+'/data/agesexstructure/sexratio_assam_{}.tif'.format(year))
-sexratio_raster_array = sexratio_raster.read(1)
+    years = years.reshape(-1, 1)
+    values = values.reshape(-1, 1)
 
-mean_dicts = rasterstats.zonal_stats(assam_rc_gdf.to_crs(sexratio_raster.crs),
-                                     sexratio_raster_array,
-                                     affine= sexratio_raster.transform,
-                                     stats= ['mean'],
-                                     nodata=sexratio_raster.nodata,
-                                     geojson_out = True)
+    model = LinearRegression()
+    model.fit(years, values)
 
-dfs = []
-for rc in mean_dicts:
-    dfs.append(pd.DataFrame([rc['properties']]))
+    projection_years = np.array([2021, 2022, 2023, 2024])
+    projection_years = projection_years.reshape(-1, 1)
 
-sexratio_df = pd.concat(dfs).reset_index(drop=True)
-sexratio_df = sexratio_df.rename(columns={'mean':'mean_sexratio'})
-sexratio_df = sexratio_df[['object_id', 'mean_sexratio']]
+    projected_values = model.predict(projection_years)
+    return flatten(projected_values)
 
-# AGED POPULATION IN EACH RC
-aged_raster = rasterio.open(path+'/data/agesexstructure/aged_population_assam_{}.tif'.format(year))
-aged_raster_array = aged_raster.read(1)
+# Group the data by state and apply the extrapolation function to each group
+extrapolated_data = master_df.groupby('objectid').apply(extrapolate_variable)
 
-sum_dicts = rasterstats.zonal_stats(assam_rc_gdf.to_crs(aged_raster.crs),
-                                     aged_raster_array,
-                                     affine= aged_raster.transform,
-                                     stats= ['sum'],
-                                     nodata=aged_raster.nodata,
-                                     geojson_out = True)
+# Create a new DataFrame from the extrapolated data
+extrapolated_df = pd.DataFrame(extrapolated_data.tolist(), columns=['2021', '2022', '2023','2024'])
+extrapolated_df.index = extrapolated_data.index
+extrapolated_df = extrapolated_df.reset_index()
 
-dfs = []
-for rc in sum_dicts:
-    dfs.append(pd.DataFrame([rc['properties']]))
+extrapolated_df = pd.melt(extrapolated_df, id_vars=['objectid'], var_name='year', value_name=projected_variable)
+# Add state and years columns to the extrapolated DataFrame
+#extrapolated_df['object_id'] = df['object_id'].unique()
+#extrapolated_df['year'] = [2021, 2022, 2023]
 
-aged_pop_zonal_stats_df = pd.concat(dfs).reset_index(drop=True)
-aged_pop_zonal_stats_df = aged_pop_zonal_stats_df.rename(columns={'sum':'sum_aged_population'})
-aged_pop_zonal_stats_df = aged_pop_zonal_stats_df[['object_id', 'sum_aged_population']]
+# Reorder the columns
+#extrapolated_df = extrapolated_df[['year', 'object_id', 2021, 2022, 2023]]
 
-# YOUNG POPULATION IN EACH RC
-young_raster = rasterio.open(path+'/data/agesexstructure/young_population_assam_{}.tif'.format(year))
-young_raster_array = young_raster.read(1)
-
-sum_dicts = rasterstats.zonal_stats(assam_rc_gdf.to_crs(young_raster.crs),
-                                     young_raster_array,
-                                     affine= young_raster.transform,
-                                     stats= ['sum'],
-                                     nodata=young_raster.nodata,
-                                     geojson_out = True)
-
-dfs = []
-for rc in sum_dicts:
-    dfs.append(pd.DataFrame([rc['properties']]))
-
-young_pop_zonal_stats_df = pd.concat(dfs).reset_index(drop=True)
-young_pop_zonal_stats_df = young_pop_zonal_stats_df.rename(columns={'sum':'sum_young_population'})
-young_pop_zonal_stats_df = young_pop_zonal_stats_df[['object_id', 'sum_young_population']]
-
-# MERGE ALL
-merged_df = pop_zonal_stats_df.merge(sexratio_df, on='object_id')
-merged_df = merged_df.merge(aged_pop_zonal_stats_df, on='object_id')
-merged_df = merged_df.merge(young_pop_zonal_stats_df, on='object_id')
-
-merged_df.to_csv(path+"data/worldpopstats_{}.csv".format(year), index=False)
-'''
-
-
+extrapolated_df.to_csv(path+'data/'+projected_variable+'_projections.csv', index=False)
