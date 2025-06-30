@@ -20,7 +20,7 @@ INPUT_VECTOR_FILE = (
 )
 
 
-#from osgeo.gdal import deprecation_warn
+
 import geopandas as gpd 
 import imdlib as imd 
 import numpy as np 
@@ -35,7 +35,7 @@ import rioxarray
 
 def run(cmd_list: list[str]):
     """Run an external command, printing it first and aborting on failure."""
-    print("▶", " ".join(cmd_list))
+    print("", " ".join(cmd_list))
     subprocess.run(cmd_list, check=True)
 
 
