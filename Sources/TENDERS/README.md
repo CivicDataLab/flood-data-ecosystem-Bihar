@@ -1,5 +1,5 @@
 # Tenders
-Public procurement datasets are scraped from the [Odisha Tenders](https://tendersodisha.gov.in/nicgep/app) website. Flood tenders are identified and geotagged with revenue circles using the names of villages, revenue circles etc., present in tender work descriptions, IDs etc.
+Public procurement datasets are scraped from the [Bihar Tenders](https://eproc2.bihar.gov.in/) website. Flood tenders are identified and geotagged with revenue circles using the names of blocks, revenue circles etc., present in tender work descriptions, Refrence IDs etc.
 
 **Variables extracted from the source:** Count and Sum of Tenders, with various sub types.
 1. `total-tender-awarded-value`: Total value of flood related tenders
@@ -11,9 +11,9 @@ Public procurement datasets are scraped from the [Odisha Tenders](https://tender
 
 ## Project Structure
 - `scripts` : Contains the scripts used to obtain the data
-    - `flood_tenders.py`: Identification of flood tenders
-    - `geocode_district.py`: Python script to Geocode the tenders at the district-level using keyword matching
-    - `geocode_blocks.py`: Python script to Geocode the tenders at the block level using keyword matching against Indian Village shapefile
+    - `flood_tenders_1.py`: Identification of flood tenders
+    - `geocode_district_2.py`: Python script to Geocode the tenders at the district-level using keyword matching
+    - `geocode_blocks_3.py`: Python script to Geocode the tenders at the block level using keyword matching against Indian Village shapefile
 - `data`: Contains datasets generated using the scripts
     - `monthly_tenders`: Contains all the AOC tenders scraped from the tender website, organized by month and concatenated into a single file per month.
     - `flood_tenders`: Contains a subset of the "monthly_tenders", that have been identified to be used for flood response using pattern matching algorithms
