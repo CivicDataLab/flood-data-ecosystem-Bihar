@@ -40,7 +40,7 @@ future==0.18.3
 GDAL==3.8.5
 geemap==0.24.4
 geocoder==1.38.1
-geopandas==0.13.2
+geopandas==0.14.4
 giddy==2.3.5
 google-api-core==2.11.1
 google-api-python-client==2.95.0

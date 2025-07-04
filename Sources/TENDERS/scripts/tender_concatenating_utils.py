@@ -81,14 +81,19 @@ def json_folder_to_csv(input_folder: str, output_csv: str):
             # nested/template fields
             templates = data.get('templates', [])
             for hdr, code in TEMPLATE_MAP.items():
-                row[hdr] = extract_template_field(templates, code)
+
+                val= extract_template_field(templates, code)
+                if code=='bid_open_date':
+                    val=ms_to_ddmmyyyy(val)
+                row[hdr]=val
+                
 
             writer.writerow(row)
 
 if __name__=="__main__":
     json_folder_to_csv(
         
-        '/home/prajna/civicdatalab/ids-drr/bihar/flood-data-ecosystem-Bihar/Sources/TENDERS/scripts/tender_data_json/unzipped/full_data',
+        'Sources/TENDERS/scripts/tender_data_json/2024/unzipped/full_data',
          '/home/prajna/civicdatalab/ids-drr/bihar/flood-data-ecosystem-Bihar/Sources/TENDERS/scripts/tender_data_csv/all_tenders_bihar.csv'
          
           )

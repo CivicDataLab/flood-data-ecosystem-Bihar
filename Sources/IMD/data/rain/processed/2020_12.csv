@@ -1,4 +1,4 @@
-objectid,stname,dtname,sdtname,st_area_sh,st_length_,remarks,dist_lgd,state_lgd,subdt_lgd,ac_no,st_length(shape),st_area(shape),max,mean,count,sum
+object_idid,stname,dtname,sdtname,st_area_sh,st_length_,remarks,dist_lgd,state_lgd,subdt_lgd,ac_no,st_length(shape),st_area(shape),max,mean,count,sum
 10-206-01064,BIHAR,Sitamarhi,Suppi,0,0,,221,10,1064,,71084.15120823232,92250451.53846286,0.0,0.0,66,0.0
 10-234-01463,BIHAR,Rohtas,Nasriganj,0,0,,215,10,1463,,90034.07903274363,167356919.18355417,0.0,0.0,126,0.0
 10-234-01464,BIHAR,Rohtas,Rajpur,0,0,,215,10,1464,,68660.48684625747,85633596.4997788,0.0,0.0,63,0.0
