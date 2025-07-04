@@ -6,7 +6,7 @@ MissionAntyodaya2020_Assam.xlsx
 scraped_data.csv
 bharatmaps_vil2017_odisha.geojson
 Odisha_antyodaya_village_dataset.xlsx
-*.zip
+#*.zip
 *.grd
 
 #Don't ignore zip files in Map
@@ -178,4 +178,4 @@ cython_debug/
 #.idea/
 
 # csv files
-Sources/TENDERS/scripts/tender_data_json
+#Sources/TENDERS/scripts/tender_data_json
