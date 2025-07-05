@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 variables_data_path = os.getcwd() + r'/Sources/master/'
-od_sd = gpd.read_file(r'Maps/br-ids-drr_shapefile/Bihar_Subdistrict_final_simplified.geojson')
+od_sd = gpd.read_file(os.getcwd()+r'\Maps\br-ids-drr_shapefile\Bihar_subdistrict_final_4326.geojson')
 
 date_range = pd.date_range(start="2021-04-01", end="2025-05-01", freq='MS')
 

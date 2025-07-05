@@ -14,7 +14,8 @@ def flatten(l):
     return [item for sublist in l for item in sublist]
 
 #files = glob.glob(path+'data/worldpopstats_*.csv')
-files = glob.glob(r"D:\CDL\flood-data-ecosystem-Bihar\Sources\WORLDPOP\data\worldpopstats_*.csv")
+files = glob.glob(r"Sources/WORLDPOP/data/worldpopstats_*.csv")
+print(files)
 dfs = []
 for file in files:
     print("file: "+ file)
@@ -43,14 +44,14 @@ def extrapolate_variable(rc_data):
     return flatten(projected_values)
 
 # Group the data by state and apply the extrapolation function to each group
-extrapolated_data = master_df.groupby('objectid').apply(extrapolate_variable)
+extrapolated_data = master_df.groupby('object_id').apply(extrapolate_variable)
 
 # Create a new DataFrame from the extrapolated data
 extrapolated_df = pd.DataFrame(extrapolated_data.tolist(), columns=['2021', '2022', '2023','2024'])
 extrapolated_df.index = extrapolated_data.index
 extrapolated_df = extrapolated_df.reset_index()
 
-extrapolated_df = pd.melt(extrapolated_df, id_vars=['objectid'], var_name='year', value_name=projected_variable)
+extrapolated_df = pd.melt(extrapolated_df, id_vars=['object_id'], var_name='year', value_name=projected_variable)
 # Add state and years columns to the extrapolated DataFrame
 #extrapolated_df['object_id'] = df['object_id'].unique()
 #extrapolated_df['year'] = [2021, 2022, 2023]

@@ -1,4 +1,4 @@
-objectid,dtname,sdtname,ac_no,st_length(shape),st_area(shape),sub_district_code,sdtcode,urban_hhd,urban_electricity,urban_tele,urban_hhd_pipe,urban_no_sanitation,rural_hhd,total_hhd,avg_electricity,avg_tele,sd_piped_hhds_pct,sd_nosanitation_hhds_pct
+object_id,dtname,sdtname,ac_no,st_length(shape),st_area(shape),sub_district_code,sdtcode,urban_hhd,urban_electricity,urban_tele,urban_hhd_pipe,urban_no_sanitation,rural_hhd,total_hhd,avg_electricity,avg_tele,sd_piped_hhds_pct,sd_nosanitation_hhds_pct
 10-203-01013,Pashchim Champaran,Sidhaw,,195582.3602130639,1085337194.6715722,1013,1013.0,0.0,0.0,0.0,0.0,0.0,101715,101715.0,10.85612741483557,2.0,60.75800029494175,14.281079486801357
 10-203-01014,Pashchim Champaran,Ramnagar,,230865.78384139363,866139404.2451236,1014,1014.0,8216.799479166666,164335.9895833333,24650.3984375,1539.0065424479164,517.6583671875,59126,67342.79947916667,11.593637265181815,2.0,51.7664944315726,13.375829987546226
 10-203-01015,Pashchim Champaran,Gaunaha,,136504.94021895694,605322845.3823951,1015,1015.0,0.0,0.0,0.0,0.0,0.0,55105,55105.0,9.754387079212412,2.0,60.52808275111151,14.209236911351056
