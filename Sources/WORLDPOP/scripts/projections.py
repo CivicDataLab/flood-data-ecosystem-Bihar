@@ -37,7 +37,7 @@ def extrapolate_variable(rc_data):
     model = LinearRegression()
     model.fit(years, values)
 
-    projection_years = np.array([2021, 2022, 2023, 2024])
+    projection_years = np.array([2021, 2022, 2023, 2024,2025])
     projection_years = projection_years.reshape(-1, 1)
 
     projected_values = model.predict(projection_years)
@@ -47,7 +47,7 @@ def extrapolate_variable(rc_data):
 extrapolated_data = master_df.groupby('object_id').apply(extrapolate_variable)
 
 # Create a new DataFrame from the extrapolated data
-extrapolated_df = pd.DataFrame(extrapolated_data.tolist(), columns=['2021', '2022', '2023','2024'])
+extrapolated_df = pd.DataFrame(extrapolated_data.tolist(), columns=['2021', '2022', '2023','2024','2025'])
 extrapolated_df.index = extrapolated_data.index
 extrapolated_df = extrapolated_df.reset_index()
 

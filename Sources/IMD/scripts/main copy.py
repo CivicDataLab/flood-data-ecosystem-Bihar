@@ -176,7 +176,7 @@ def retrieve_assam_revenue_circle_data(year: int):
             raster = rasterio.open(
                 os.path.join(
                     TIFF_DATA_FOLDER,
-                    "{}_resampled2.tif".format(month_and_year_filename),
+                    "{}_resampled.tif".format(month_and_year_filename),
                 )
             )
             print(f"Processing for {month_and_year_filename}")
@@ -214,12 +214,12 @@ def retrieve_assam_revenue_circle_data(year: int):
 if __name__ == "__main__":
 
     # Takes year as an input from the cli
-    year = str(sys.argv[1])
-    year = int(year)
+    #year = str(sys.argv[1])
+    year = 2025#int(year)
 
     # IF the year is current year, specify start and end date
-    start_date = "2024-01-01"
-    end_date = "2024-06-30"
+    start_date = "2025-01-01"
+    end_date = "2025-06-30"
 
     download_data(year, start_date=start_date, end_date=end_date)
     parse_and_format_data(year, start_date=start_date, end_date=end_date)
