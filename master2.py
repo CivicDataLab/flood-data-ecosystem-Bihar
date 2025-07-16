@@ -7,7 +7,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 variables_data_path = os.getcwd() + r'/Sources/master/'
-od_sd = gpd.read_file(os.getcwd()+r'\Maps\br-ids-drr_shapefile\Bihar_subdistrict_final_4326.geojson')
+od_sd = gpd.read_file(os.getcwd()+r'/Maps/br-ids-drr_shapefile/Bihar_subdistrict_final_4326_reduced.json')
 
 date_range = pd.date_range(start="2021-04-01", end="2025-06-30", freq='MS')
 
@@ -41,7 +41,7 @@ monthly_variables = ['total_tender_awarded_value',
                      #'Embankments affected', 'Roads', 'Bridge', 'Embankment breached',
                      'rainfall',#'runoff',
                      #'ndvi_subdis', 'ndbi_subdis',
-                     #'inundation', #'riverlevel'
+                     'inundation', #'riverlevel'
                      ]
 
 for variable in monthly_variables:
