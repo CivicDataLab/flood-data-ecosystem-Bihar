@@ -1,0 +1,93 @@
+import pandas as pd
+import geopandas as gpd
+import os
+import matplotlib.pyplot as plt
+from shapely import wkt
+
+# Config - update paths if needed
+
+repo_root = "/Users/stephensmathew/cdl_rep/flood-data-ecosystem-Bihar/Sources/BHARATMAPS/data/variables"
+shp_path = "/Users/stephensmathew/cdl_rep/flood-data-ecosystem-Bihar/Maps/br-ids-drr_shapefile/Bihar_subdistrict_final_4326.geojson"
+
+# variable names (column expected in CSVs) and corresponding folders under repo_root
+variables = ["total_rail_length", "total_road_length_m", "school_count", "health_centres_count"]
+variable_folder = ["RailLengths", "RoadLengths", "schools", "HealthCentres"]
+
+#loading shape file 
+
+shp = gpd.read_file(shp_path)
+
+merged_df = pd.DataFrame()
+
+#looping through each variable 
+
+for variable,folder in zip(variables,variable_folder):
+    variable_folder_path = os.path.join(repo_root, folder)
+
+     # Check if the folder exists
+    if not os.path.exists(variable_folder_path):
+        print(f"Skipping {variable}: Folder '{folder}' not found.")
+        continue
+    #running through the path of csv 
+    for csv_file in os.listdir(variable_folder_path):
+        if csv_file.endswith('.csv'):
+            try:
+                # Read the CSV file
+                file_path = os.path.join(variable_folder_path, csv_file)
+                df = pd.read_csv(file_path)
+
+                # Ensure 'object_id' column exists
+                if 'object_id' not in df.columns:
+                    print(f"Skipping {csv_file}: 'object_id' column is missing.")
+                    continue
+
+                # Rename the variable column to 'value'
+                if variable not in df.columns:
+                    print(f"Skipping {csv_file}: Expected column '{variable}' not found.")
+                    continue
+                
+                df.rename(columns={variable: 'value'}, inplace=True)
+
+                # Add variable name for tracking
+                df['variable'] = variable
+
+                # Append the DataFrame to merged_df
+                merged_df = pd.concat([merged_df, df], ignore_index=True)
+
+            except Exception as e:
+                print(f"Error processing {csv_file}: {e}")
+
+pivot_df = merged_df.pivot_table(index = ['object_id'],columns='variable',values='value').reset_index()
+shp_merge = pivot_df.merge(shp[['object_id','dtname','sdtname','geometry']],on='object_id', how='left')
+
+output_folder = "/Users/stephensmathew/cdl_rep/flood-data-ecosystem-Bihar/Sources/BHARATMAPS/visualizations"
+os.makedirs(output_folder,exist_ok=True)
+
+shp_merge = gpd.GeoDataFrame(shp_merge,geometry='geometry')
+
+
+#generating visualisations 
+
+for variable in [v for v in variables if v in shp_merge.columns]: #just to check if the variables exists 
+    fig, ax = plt.subplots(figsize=(10,5))  
+    shp_merge.plot(
+        column=variable,
+        cmap='RdYlBu_r',
+        ax=ax,
+        legend=True,
+        legend_kwds={
+          'shrink': 0.5,
+          'aspect': 30,
+          'label': variable,
+        }
+    )
+
+    ax.tick_params(labelsize=8)  
+    plt.title(f"{variable} in Bihar")
+    output_path = os.path.join(output_folder, f'{variable}_map.png')
+    plt.savefig(output_path, dpi=300)
+    plt.close()
+
+output_file = os.path.join(repo_root, 'BharatMaps_variables.csv')
+shp_merge.to_csv(output_file, index=False)
+print(f'Merged CSV file saved to {output_file}')
