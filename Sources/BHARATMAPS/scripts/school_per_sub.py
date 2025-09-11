@@ -23,7 +23,7 @@ school_in_bihar = gpd.sjoin(school_gdf,sub_gdf, how="left", predicate="within")
 school_count = (
     school_in_bihar.groupby("object_id")
     .size()
-    .reset_index(name="school_count")
+    .reset_index(name="schools_count")
 )
 
 # Save output

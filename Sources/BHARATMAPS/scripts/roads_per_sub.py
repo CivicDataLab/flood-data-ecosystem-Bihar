@@ -38,7 +38,7 @@ road_lengths_in_bihar = (
     roads_in_bihar.groupby(id_col)["LENGTH"]
     .sum()
     .reset_index()
-    .rename(columns={id_col: "object_id", "LENGTH": "total_road_length_m"})
+    .rename(columns={id_col: "object_id", "LENGTH": "road_length"})
 )
 
 # Save results

@@ -10,7 +10,7 @@ repo_root = "/Users/stephensmathew/cdl_rep/flood-data-ecosystem-Bihar/Sources/BH
 shp_path = "/Users/stephensmathew/cdl_rep/flood-data-ecosystem-Bihar/Maps/br-ids-drr_shapefile/Bihar_subdistrict_final_4326.geojson"
 
 # variable names (column expected in CSVs) and corresponding folders under repo_root
-variables = ["total_rail_length", "total_road_length_m", "school_count", "health_centres_count"]
+variables = ["rail_length", "road_length", "schools_count", "health_centres_count"]
 variable_folder = ["RailLengths", "RoadLengths", "schools", "HealthCentres"]
 
 #loading shape file 

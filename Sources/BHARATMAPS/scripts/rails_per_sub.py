@@ -30,7 +30,7 @@ if id_col is None:
 # Group by subdistrict and calculate total rail length and count (from file)
 rail_lengths_bihar = (
     rails_in_bihar.groupby(id_col).agg(
-        total_rail_length=("LENGTH", "sum"),  # sum of rail lengths
+        rail_length=("LENGTH", "sum"),  # sum of rail lengths
         rail_count=("COUNT", "sum")           # sum of COUNT field
     )
     .reset_index()
