@@ -6,8 +6,9 @@ import glob
 
 # === CONFIG ===
 BASE_PATH = os.getcwd()
-TENDER_PATH = os.path.join(BASE_PATH, 'flood-data-ecosystem-Bihar', 'Sources', 'TENDERS')
-MONTHLY_TENDERS_PATH = os.path.join(TENDER_PATH, 'monthly_tenders')
+print(f"Base path is {BASE_PATH}")
+TENDER_PATH = os.path.join(BASE_PATH, 'bihar', 'flood-data-ecosystem-Bihar', 'Sources', 'TENDERS')
+MONTHLY_TENDERS_PATH = os.path.join(TENDER_PATH, 'data', 'monthly_tenders')
 FLOOD_TENDERS_PATH = os.path.join(TENDER_PATH, 'data', 'flood_tenders')
 os.makedirs(FLOOD_TENDERS_PATH, exist_ok=True)
 
@@ -29,7 +30,7 @@ def populate_keyword_dict(keyword_list):
     return {kw: 0 for kw in keyword_list}
 
 def flood_filter(row):
-    tender_slug = f"{row.get('tender_externalreference','')} {row.get('tender_title','')} {row.get('Work Description','')}"
+    tender_slug = f"{row.get('Tender Ref No :','')} {row.get('Tender Title :','')} {row.get('Work Description','')}"
     tender_slug = re.sub(r'[^a-zA-Z0-9 \n\.]', ' ', tender_slug)
 
     pos_kw = populate_keyword_dict(POSITIVE_KEYWORDS)
@@ -51,7 +52,7 @@ def flood_filter(row):
     return str(is_flood), str(pos_kw), str(neg_kw)
 
 # === PROCESS EACH CSV ===
-csvs = glob.glob(os.path.join('/home/prajna/civicdatalab/ids-drr/bihar/flood-data-ecosystem-Bihar/Sources/TENDERS/monthly_tenders', '*.csv'))
+csvs = glob.glob(os.path.join(MONTHLY_TENDERS_PATH, '*.csv'))
 
 for csv in csvs:
     filename = os.path.basename(csv)
@@ -91,7 +92,7 @@ for csv in csvs:
     schemes = []
     scheme_kw = {'ridf','sdrf','sopd','cidf','ltif','sdmf','ndrf'}
     for _, row in flood_df.iterrows():
-        slug = f"{row.get('tender_title','')} {row.get('tender_externalreference','')} {row.get('Work Description','')}"
+        slug = f"{row.get('Tender Title :','')} {row.get('Tender Ref No :','')} {row.get('Work Description','')}"
         slug = re.sub(r'[^a-zA-Z0-9 \n\.]', ' ', slug).lower()
         slug_tokens = set(re.split(r'[-.,()_\s/]\s*', slug))
         matches = list(slug_tokens & scheme_kw)
@@ -118,7 +119,7 @@ for csv in csvs:
     preparedness_kw = ['shelter', 'responder kit', 'aapda mitra', 'protection', 'stockpile']
 
     def classify_response(row):
-        slug = f"{row.get('tender_externalreference','')} {row.get('tender_title','')} {row.get('Work Description','')}"
+        slug = f"{row.get('Tender Ref No :','')} {row.get('Tender Title :','')} {row.get('Work Description','')}"
         slug = re.sub(r'[^a-zA-Z0-9 \n\.]', ' ', slug).lower()
         if any(kw in slug for kw in immediate_kw):
             return "Immediate Measures"
@@ -149,7 +150,7 @@ for csv in flood_csvs:
 
 if dfs:
     all_flood_df = pd.concat(dfs, ignore_index=True)
-    all_flood_df.to_csv(os.path.join('/home/prajna/civicdatalab/ids-drr/bihar/flood-data-ecosystem-Bihar/Sources/TENDERS', 'data', 'flood_tenders_all.csv'), index=False)
+    all_flood_df.to_csv(os.path.join(TENDER_PATH, 'data', 'flood_tenders_all.csv'), index=False)
     print("✅ Combined all flood-tagged tenders into flood_tenders_all.csv")
 else:
     print("⚠️ No flood_tenders files to concatenate.")

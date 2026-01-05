@@ -2,10 +2,10 @@ import pandas as pd
 import os
 
 # Load the full CSV
-df = pd.read_csv("/home/prajna/civicdatalab/ids-drr/bihar/flood-data-ecosystem-Bihar/Sources/TENDERS/scripts/tender_data_csv/all_tenders_bihar.csv", parse_dates=["Publish Date"], dayfirst=True, encoding="utf-8")
+df = pd.read_csv(r"D:\CDL\Bihar Scraper\tenders_full_data.csv", parse_dates=["Publish Date"], dayfirst=True, encoding="utf-8")
 
 # Create output folder if not exists
-output_dir = "/home/prajna/civicdatalab/ids-drr/bihar/flood-data-ecosystem-Bihar/Sources/TENDERS/monthly_tenders"
+output_dir = r"D:\CDL\Bihar Scraper\bihar\flood-data-ecosystem-Bihar\Sources\TENDERS\data\monthly_tenders"
 os.makedirs(output_dir, exist_ok=True)
 
 # Drop rows with missing Publish Date

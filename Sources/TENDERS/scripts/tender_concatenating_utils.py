@@ -2,100 +2,200 @@ import os
 import glob
 import json
 import csv
-from datetime import datetime
+from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# 1. define your CSV headers and how they map to JSON
+INPUT_FOLDER = r"D:\CDL\Bihar Scraper\full_data"
+OUTPUT_CSV = r"D:\CDL\Bihar Scraper\tenders_full_data.csv"
+
+# CSV headers (normal text like tender_concatenating_utils.py)
 CSV_HEADERS = [
-    'Tender ID :', 'Tender Title :', 'Work Description', 'Organisation Chain', 'Title',
-    'Tender Value in ₹', 'Tender Ref No :', 'Publish Date', 'Bid Validity(Days)',
-    'Is Multi Currency Allowed For BOQ', 'Bid Opening Date', 'Tender Category',
-    'Tender Type', 'Form of contract', 'Product Category', 'Allow Two Stage Bidding',
-    'Allow Preferential Bidder', 'Payment Mode', 'Status',
-    'Contract Date :', 'Awarded Value'
+    "Tender ID :",
+    "Tender Ref No :",
+    "Tender Title :",
+    "Work Description",
+    "Tender Value in ₹",
+    "Tender Currency",
+    "Bid Currency",
+    "Publish Date",
+    "Contract Date :",
+    "Update Date",
+    "Issuing Authority Name",
+    "Issuing Authority Designation",
+    "Issuing Organisation Name",
+#    "Issuing Organisation Code",
+    "Issuing Address",
+#    "Issuing Email",
+#    "Issuing Contact No",
+    "Approving Authority Name",
+    "Approving Authority Designation",
+    "Approving Organisation Name",
+#    "Approving Organisation Code",
+    "EMD Amount",
+    "Tender Fee Amount",
+    "Tender Processing Fee Amount",
 ]
 
-# map simple top-level JSON keys
-TOP_LEVEL_MAP = {
-    'Tender ID :'                      : 'tenderid',
-    'Tender Title :'                   : 'nit',
-    'Work Description'                 : 'description',
-    'Organisation Chain'               : 'queryString',
-    'Title'                            : 'nit',
-    'Tender Value in ₹'                : 'pacamt',
-    'Tender Ref No :'                  : 'tenderrefno',
-    'Publish Date'                     : 'publishdate',
-    'Bid Validity(Days)'               : 'offerValidity',
-    'Is Multi Currency Allowed For BOQ': 'bidcurrency',
-    'Tender Category'                  : 'tendercatid',
-    'Tender Type'                      : 'tendertypeid',
-    'Form of contract'                 : 'proccatid',
-    'Product Category'                 : 'deptid',
-    'Allow Two Stage Bidding'          : 'bidPartNo',
-    'Allow Preferential Bidder'        : 'indentFlag',
-    'Status'                           : 'status',
-    'Contract Date :'                  : 'createdate',
-    # Awarded Value—reuse pacamt if no separate field
-    'Awarded Value'                    : 'pacamt',
+# Map CSV headers -> extracted keys (like TOP_LEVEL_MAP style)
+KEY_MAP = {
+    "Tender ID :"                   : "tender id",
+    "Tender Ref No :"               : "tenderrefno",
+    "Tender Title :"                : "title",
+    "Work Description"              : "description",
+    "Tender Value in ₹"             : "procurement_amount_pacamt",
+    "Tender Currency"               : "tendercurrency",
+    "Bid Currency"                  : "bidcurrency",
+    "Publish Date"                  : "publishdate_iso",
+    "Contract Date :"               : "createdate_iso",
+    "Update Date"                   : "updatedate_iso",
+    "Issuing Authority Name"        : "issuing_authority_name",
+    "Issuing Authority Designation" : "issuing_authority_designation",
+    "Issuing Organisation Name"     : "issuing_organization_name",
+#    "Issuing Organisation Code"     : "issuing_organization_code",
+    "Issuing Address"               : "issuing_address",
+#    "Issuing Email"                 : "issuing_email",
+#    "Issuing Contact No"            : "issuing_contact_no",
+    "Approving Authority Name"      : "approving_authority_name",
+    "Approving Authority Designation": "approving_authority_designation",
+    "Approving Organisation Name"   : "approving_organization_name",
+#    "Approving Organisation Code"   : "approving_organization_code",
+    "EMD Amount"                    : "emd_amount",
+    "Tender Fee Amount"             : "tender_fee_amount",
+    "Tender Processing Fee Amount"  : "tender_processing_fee_amount",
 }
-
-# map CSV headers to the `code` of nested template fields
-TEMPLATE_MAP = {
-    'Bid Opening Date': 'bid_open_date',
-    'Payment Mode'     : 'payment_mode',
-}
-
-def ms_to_ddmmyyyy(ms: int) -> str:
-    """Convert milliseconds since epoch to DD-MM-YYYY (local time)."""
+def ms_to_iso(ms):
+    if ms is None:
+        return ""
     try:
-        return datetime.fromtimestamp(ms / 1000).strftime('%d-%m-%Y')
+        return datetime.fromtimestamp(int(ms) / 1000, tz=timezone.utc).isoformat()
     except Exception:
-        return ''
+        return ""
 
-def extract_template_field(templates, code):
-    """Search all templates for the given code and return its fieldValue or blank."""
-    for tpl in templates:
-        for fld in tpl.get('templateFieldList', []):
-            if fld.get('code') == code:
-                return fld.get('fieldValue', '')
-    return ''
+def extract_payment_info(templates):
+    payment_info = {
+        "EMD": "",
+        "Tender Fee": "",
+        "Tender Processing Fee": "",
+    }
 
-def json_folder_to_csv(input_folder: str, output_csv: str):
-    files = glob.glob(os.path.join(input_folder, '*.json'))
-    with open(output_csv, 'w', newline='', encoding='utf-8') as fout:
-        writer = csv.DictWriter(fout, fieldnames=CSV_HEADERS)
+    if not isinstance(templates, list):
+        return {
+            "emd_amount": "",
+            "tender_fee_amount": "",
+            "tender_processing_fee_amount": "",
+        }
+
+    for tmpl in templates:
+        if tmpl.get("subProcessName") != "Payment":
+            continue
+
+        payment_type = None
+        amount = None
+
+        for field in tmpl.get("templateFieldList", []):
+            if field.get("code") == "payment_type":
+                payment_type = field.get("value")
+            elif field.get("code") == "amount":
+                amount = field.get("value")
+
+        if payment_type in payment_info:
+            payment_info[payment_type] = amount or ""
+
+    return {
+        "emd_amount": payment_info["EMD"],
+        "tender_fee_amount": payment_info["Tender Fee"],
+        "tender_processing_fee_amount": payment_info["Tender Processing Fee"],
+    }
+
+def extract_basic_info(data):
+    title = data.get("title") or data.get("description") or ""
+
+    tia = data.get("tenderIssuingAuthority", {}) or {}
+    taa = data.get("tenderApprovingAuthority", {}) or {}
+
+    payments = extract_payment_info(data.get("templates", []))
+
+    return {
+        "tender id": data.get("tenderid", ""),
+        "tenderrefno": data.get("tenderrefno", ""),
+        "title": title,
+        "description": data.get("description", ""),
+        "procurement_amount_pacamt": data.get("pacamt", ""),
+        "tendercurrency": data.get("tendercurrency", ""),
+        "bidcurrency": data.get("bidcurrency", ""),
+
+        "createdate_iso": ms_to_iso(data.get("createdate")),
+        "updatedate_iso": ms_to_iso(data.get("updatedate")),
+        "publishdate_iso": ms_to_iso(data.get("publishdate")),
+
+        "issuing_authority_name": tia.get("tenderIssuingAuthorityName", ""),
+        "issuing_authority_designation": tia.get("tenderIssuingAuthorityDesignation", ""),
+        "issuing_organization_name": tia.get("organizationName", ""),
+    #    "issuing_organization_code": tia.get("organizationCode", ""),
+        "issuing_address": tia.get("address", ""),
+    #    "issuing_email": tia.get("email", ""),
+    #    "issuing_contact_no": tia.get("contactNo", ""),
+
+        "approving_authority_name": taa.get("tenderApprovingAuthorityName", ""),
+        "approving_authority_designation": taa.get("tenderApprovingAuthorityDesignation", ""),
+        "approving_organization_name": taa.get("organizationName", ""),
+    #    "approving_organization_code": taa.get("organizationCode", ""),
+
+        "emd_amount": payments["emd_amount"],
+        "tender_fee_amount": payments["tender_fee_amount"],
+        "tender_processing_fee_amount": payments["tender_processing_fee_amount"],
+    }
+
+def to_csv_row(extracted: dict) -> dict:
+    row = {}
+    for hdr in CSV_HEADERS:
+        key = KEY_MAP[hdr]
+        row[hdr] = extracted.get(key, "")
+    return row
+
+def process_file(path):
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as e:
+        print(f"Error reading {path}: {e}")
+        return []
+
+    rows = []
+    if isinstance(data, dict):
+        rows.append(to_csv_row(extract_basic_info(data)))
+    elif isinstance(data, list):
+        for item in data:
+            if isinstance(item, dict):
+                rows.append(to_csv_row(extract_basic_info(item)))
+    return rows
+
+def main():
+    json_files = glob.glob(os.path.join(INPUT_FOLDER, "*.json"))
+    if not json_files:
+        print("No JSON files found.")
+        return
+
+    workers = os.cpu_count() or 8
+    print(f"Using {workers} threads")
+
+    with open(OUTPUT_CSV, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=CSV_HEADERS)
         writer.writeheader()
 
-        for fn in files:
-            with open(fn, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+        written = 0
+        with ThreadPoolExecutor(max_workers=workers) as executor:
+            futures = [executor.submit(process_file, path) for path in json_files]
+            for future in as_completed(futures):
+                rows = future.result()
+                if rows:
+                    writer.writerows(rows)
+                    written += len(rows)
+                    if written % 1000 == 0:
+                        print(f"Wrote {written} rows...")
 
-            row = {}
-            # simple top-level fields
-            for hdr, key in TOP_LEVEL_MAP.items():
-                val = data.get(key, '')
-                # convert dates for publishdate & createdate
-                if key in ('publishdate', 'createdate') and isinstance(val, (int, float)):
-                    val = ms_to_ddmmyyyy(val)
-                row[hdr] = val
+    print(f"Done! Extracted {written} tenders into:")
+    print(OUTPUT_CSV)
 
-            # nested/template fields
-            templates = data.get('templates', [])
-            for hdr, code in TEMPLATE_MAP.items():
-
-                val= extract_template_field(templates, code)
-                if code=='bid_open_date':
-                    val=ms_to_ddmmyyyy(val)
-                row[hdr]=val
-                
-
-            writer.writerow(row)
-
-if __name__=="__main__":
-    json_folder_to_csv(
-        
-        'Sources/TENDERS/scripts/tender_data_json/2024/unzipped/full_data',
-         '/home/prajna/civicdatalab/ids-drr/bihar/flood-data-ecosystem-Bihar/Sources/TENDERS/scripts/tender_data_csv/all_tenders_bihar.csv'
-         
-          )
-# example usage:
-# json_folder_to_csv('/path/to/tender_jsons', 'all_tenders.csv')
+if __name__ == "__main__":
+    main()

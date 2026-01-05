@@ -18,10 +18,10 @@ def best_match(
 
 
 # data_path = os.getcwd()+'/Sources/TENDERS/data/'
-data_path='/home/prajna/civicdatalab/ids-drr/bihar/flood-data-ecosystem-Bihar/Sources/TENDERS/data/'
-od_gdf = gpd.read_file('/home/prajna/civicdatalab/ids-drr/bihar/flood-data-ecosystem-Bihar/Maps/br-ids-drr_shapefile/Bihar_Subdistrict_final_simplified.geojson')
+data_path=r'D:\CDL\Bihar Scraper\bihar\flood-data-ecosystem-Bihar\Sources\TENDERS\data'
+od_gdf = gpd.read_file(r'D:\CDL\Bihar Scraper\bihar\flood-data-ecosystem-Bihar\Maps\br-ids-drr_shapefile\Bihar_Subdistrict_final_simplified.geojson')
 
-flood_tenders_geotagged_df = pd.read_csv(data_path + '/floodtenders_blockgeotagged.csv')
+flood_tenders_geotagged_df = pd.read_csv(data_path + '/floodtenders_blockgeotagged.csv', encoding='latin1')
 
 # FUzzy match
 sdt_choices=od_gdf['sdtname'].dropna().unique().tolist()
@@ -40,7 +40,7 @@ flood_tenders_geotagged_df = flood_tenders_geotagged_df.merge( od_gdf[['dtname',
     right_on = ['dtname', 'sdtname'],
     how     = 'left')
 print(flood_tenders_geotagged_df)
-flood_tenders_geotagged_df.rename(columns={'Awarded Price in ₹':'Awarded Value'},inplace = True)
+#flood_tenders_geotagged_df.rename(columns={'Tender Value in ₹':'Tender Value'},inplace = True)
 flood_tenders_geotagged_df['Awarded Value'] = (flood_tenders_geotagged_df['Awarded Value'].astype(float))
 
 # Total tender variable
@@ -51,13 +51,13 @@ total_tender_awarded_value_df = total_tender_awarded_value_df.rename(columns = {
 for year_month in total_tender_awarded_value_df.month.unique():
     variable_df_monthly = total_tender_awarded_value_df[total_tender_awarded_value_df.month == year_month]
     variable_df_monthly = variable_df_monthly[['object_id', variable]]
-    if os.path.exists(data_path+'variables/'+variable):
+    if os.path.exists(data_path+'/variables/'+variable):
         print(f"data path is {data_path}")
-        variable_df_monthly.to_csv(data_path+'variables/'+variable+'/{}_{}.csv'.format(variable, year_month), index=False)
+        variable_df_monthly.to_csv(data_path+'/variables/'+variable+'/{}_{}.csv'.format(variable, year_month), index=False)
     else:
-        os.mkdir(data_path+'variables/'+variable)
+        os.mkdir(data_path+'/variables/'+variable)
         print(f"data path is {data_path}")
-        variable_df_monthly.to_csv(data_path+'variables/'+variable+'/{}_{}.csv'.format(variable, year_month), index=False)
+        variable_df_monthly.to_csv(data_path+'/variables/'+variable+'/{}_{}.csv'.format(variable, year_month), index=False)
 
 # Scheme wise tender variables
 variables = flood_tenders_geotagged_df['Scheme'].unique()
@@ -71,12 +71,11 @@ for variable in variables:
     for year_month in variable_df.month.unique():
         variable_df_monthly = variable_df[variable_df.month == year_month]
         variable_df_monthly = variable_df_monthly[['object_id', variable]]
-        if os.path.exists(data_path+'variables/'+variable):
-            variable_df_monthly.to_csv(data_path+'variables/'+variable+'/{}_{}.csv'.format(variable, year_month), index=False)
+        if os.path.exists(data_path+'/variables/'+variable):
+            variable_df_monthly.to_csv(data_path+'/variables/'+variable+'/{}_{}.csv'.format(variable, year_month), index=False)
         else:
-            os.mkdir(data_path+'variables/'+variable)
-            variable_df_monthly.to_csv(data_path+'variables/'+variable+'/{}_{}.csv'.format(variable, year_month), index=False)
-
+            os.mkdir(data_path+'/variables/'+variable)
+            variable_df_monthly.to_csv(data_path+'/variables/'+variable+'/{}_{}.csv'.format(variable, year_month), index=False)
 
 # Scheme wise tender variables
 variables = flood_tenders_geotagged_df['Response Type'].unique()
@@ -90,13 +89,13 @@ for variable in variables:
     for year_month in variable_df.month.unique():
         variable_df_monthly = variable_df[variable_df.month == year_month]
         variable_df_monthly = variable_df_monthly[['object_id', variable]]
-        if os.path.exists(data_path+'variables/'+variable):
+        if os.path.exists(data_path+'/variables/'+variable):
             print(f'The variables is: ', variable_df_monthly)
-            variable_df_monthly.to_csv(data_path+'variables/'+variable+'/{}_{}.csv'.format(variable, year_month), index=False)
+            variable_df_monthly.to_csv(data_path+'/variables/'+variable+'/{}_{}.csv'.format(variable, year_month), index=False)
         else:
-            os.mkdir(data_path+'variables/'+variable)
+            os.mkdir(data_path+'/variables/'+variable)
             print(f'The variables is: ', variable_df_monthly)
-            variable_df_monthly.to_csv(data_path+'variables/'+variable+'/{}_{}.csv'.format(variable, year_month), index=False)
+            variable_df_monthly.to_csv(data_path+'/variables/'+variable+'/{}_{}.csv'.format(variable, year_month), index=False)
 
     '''
     for year_month in variable_df.month.unique():

@@ -6,12 +6,12 @@ from tqdm import tqdm
 import warnings
 warnings.filterwarnings("ignore")
 
-OD_VILLAGES = pd.read_csv('/home/prajna/civicdatalab/ids-drr/bihar/flood-data-ecosystem-Bihar/Maps/br-ids-drr_shapefile/BIHAR_VILLAGES.csv', encoding='utf-8').dropna()
-OD_BLOCKS = gpd.read_file('/home/prajna/civicdatalab/ids-drr/bihar/flood-data-ecosystem-Bihar/Maps/br-ids-drr_shapefile/Bihar_Subdistrict_final_simplified.geojson', driver='GeoJSON')
+OD_VILLAGES = pd.read_csv(r'D:\CDL\Bihar Scraper\bihar\flood-data-ecosystem-Bihar\Maps\br-ids-drr_shapefile\BIHAR_VILLAGES.csv', encoding='utf-8').dropna()
+OD_BLOCKS = gpd.read_file(r'D:\CDL\Bihar Scraper\bihar\flood-data-ecosystem-Bihar\Maps\br-ids-drr_shapefile\Bihar_Subdistrict_final_simplified.geojson', driver='GeoJSON')
 
 #BLOCK_HQs = list(OD_BLOCKS[OD_BLOCKS.HQ=='y']['revenue_ci'])
 
-tenders_df  = pd.read_csv('/home/prajna/civicdatalab/ids-drr/bihar/flood-data-ecosystem-Bihar/Sources/TENDERS/data/flood_tenders_district_geotagged.csv', keep_default_na=False)
+tenders_df  = pd.read_csv(r'D:\CDL\Bihar Scraper\bihar\flood-data-ecosystem-Bihar\Sources\TENDERS\data\floodtenders_districtgeotagged.csv', keep_default_na=False)
 
 MASTER_DFs = []
 for FOCUS_DISTRICT in tqdm(OD_VILLAGES.dtname.unique()):
@@ -65,7 +65,7 @@ for FOCUS_DISTRICT in tqdm(OD_VILLAGES.dtname.unique()):
         tender_subdistrict = ""
         #tender_revenueci_location = ""
 
-        tender_slug = str(row['Tender Ref No :']) + ' ' + str(row['Title']) + ' ' + str(row['Work Description'])
+        tender_slug = str(row['Tender Ref No :']) + ' ' + str(row['Tender Title :']) + ' ' + str(row['Work Description'])
         tender_slug = re.sub(r'[^a-zA-Z0-9 \n\.]', ' ', tender_slug)
 
         # List of substrings to remove from GPE names
@@ -148,4 +148,7 @@ for idx, row in MASTER_DF.iterrows():
         MASTER_DF.loc[idx, 'BLOCK_FINALISED'] = row['tender_block']
 
     # If HQ True AND row['tender_revenueci_location'] != row['tender_revenueci']?
-MASTER_DF.to_csv(os.getcwd()+r'/Sources/TENDERS/data/floodtenders_blockgeotagged.csv')
+MASTER_DF.to_csv(os.getcwd()+r'/bihar/flood-data-ecosystem-Bihar/Sources/TENDERS/data/floodtenders_blockgeotagged.csv')
+
+
+
