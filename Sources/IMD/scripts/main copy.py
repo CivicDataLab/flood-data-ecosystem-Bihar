@@ -215,7 +215,7 @@ if __name__ == "__main__":
 
     # Takes year as an input from the cli
     #year = str(sys.argv[1])
-    year = 2025#int(year)
+    year = 2025 #int(year)
 
     # IF the year is current year, specify start and end date
     start_date = "2025-01-01"

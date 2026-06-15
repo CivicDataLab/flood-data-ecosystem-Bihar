@@ -3,10 +3,10 @@ import glob
 import numpy as np
 from sklearn.linear_model import LinearRegression
 import os
-path = os.getcwd()+r'/Sources/WORLDPOP/'
+path = os.getcwd()+ '/Sources/WORLDPOP/'
 print(path)
 import sys
-global projected_variable
+global projected_variable    
 projected_variable = sys.argv[1]
 
 
@@ -14,7 +14,7 @@ def flatten(l):
     return [item for sublist in l for item in sublist]
 
 #files = glob.glob(path+'data/worldpopstats_*.csv')
-files = glob.glob(r"Sources/WORLDPOP/data/worldpopstats_*.csv")
+files = glob.glob("Sources/WORLDPOP/data/worldpopstats_*.csv")
 print(files)
 dfs = []
 for file in files:
@@ -29,7 +29,14 @@ master_df = master_df.sort_values(by='year').reset_index(drop=True)
 # Define a function to extrapolate population
 def extrapolate_variable(rc_data):
     years = np.array(rc_data['year'].tolist())
-    values = np.array(rc_data[projected_variable].tolist())
+    values = pd.to_numeric(rc_data[projected_variable], errors='coerce').to_numpy()
+
+    mask = ~np.isnan(values)
+    years = years[mask]
+    values = values[mask]
+
+    if len(years) < 2:
+        return [np.nan] * 6
 
     years = years.reshape(-1, 1)
     values = values.reshape(-1, 1)
@@ -37,7 +44,7 @@ def extrapolate_variable(rc_data):
     model = LinearRegression()
     model.fit(years, values)
 
-    projection_years = np.array([2021, 2022, 2023, 2024,2025])
+    projection_years = np.array([2021, 2022, 2023, 2024,2025,2026])
     projection_years = projection_years.reshape(-1, 1)
 
     projected_values = model.predict(projection_years)
@@ -47,7 +54,7 @@ def extrapolate_variable(rc_data):
 extrapolated_data = master_df.groupby('object_id').apply(extrapolate_variable)
 
 # Create a new DataFrame from the extrapolated data
-extrapolated_df = pd.DataFrame(extrapolated_data.tolist(), columns=['2021', '2022', '2023','2024','2025'])
+extrapolated_df = pd.DataFrame(extrapolated_data.tolist(), columns=['2021', '2022', '2023','2024','2025','2026'])
 extrapolated_df.index = extrapolated_data.index
 extrapolated_df = extrapolated_df.reset_index()
 

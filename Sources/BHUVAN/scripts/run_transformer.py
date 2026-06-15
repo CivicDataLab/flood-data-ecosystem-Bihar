@@ -7,8 +7,9 @@ cwd = os.getcwd()
 # print(cwd)
 path = os.getcwd() + "/Sources/BHUVAN/"
 script_path = cwd + "/Sources/BHUVAN/scripts/transformer.py"
+PY = "/Users/stephensmathew/anaconda3/envs/testenv/bin/python"
 print(path)
-for year in [2021,2022,2023,2024]:
+for year in [2025]:
     print(year)
     year = str(year)
     for month in [
@@ -40,4 +41,4 @@ for year in [2021,2022,2023,2024]:
             continue
         else:
             print("Number of images:", len(files))
-            subprocess.call(["python3", script_path, year, month])
+            subprocess.call([PY,script_path, year, month])
