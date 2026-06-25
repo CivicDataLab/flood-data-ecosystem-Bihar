@@ -11,7 +11,7 @@ for file in files:
     df['year'] = int(file.split('_')[-1][:-4])
     dfs.append(df)
 
-master_df = pd.concat(dfs)
+master_df = pd.concat(dfs) 
 master_df = master_df.sort_values(by='year').reset_index(drop=True)
 
 projection_files = glob.glob(data_path+'*_projections.csv')
