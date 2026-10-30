@@ -1,8 +1,12 @@
 import pandas as pd
 import os
 import re
+import sys
 import dateutil.parser
 import glob
+
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+from tender_tagging import classify_response, tag_scheme
 
 # === CONFIG ===
 BASE_PATH = os.getcwd()
@@ -24,6 +28,33 @@ NEGATIVE_KEYWORDS = [
     'Floodlight', 'Flood Light','GAS', 'FIFA', 'pipe','pipes', 'covid','supply',
     'Beautification','Installation'
 ]
+
+# === COLUMN NAMES ===
+# The scraper in bihar_tender_scraper/ names its columns differently from the older
+# scraped data. Map both onto one set of names so every downstream script
+# (tagging, geocoding, transformer_4) sees the same schema.
+COLUMN_ALIASES = {
+    'tender id': 'Tender ID :',
+    'tenderrefno': 'Tender Ref No :',
+    'Title': 'Tender Title :',
+    'Issuing Organization Name': 'Issuing Organisation Name',
+    'Approving Organization Name': 'Approving Organisation Name',
+    'Emd Amount': 'EMD Amount',
+}
+
+def normalise_columns(df):
+    renames = {}
+    for source, canonical in COLUMN_ALIASES.items():
+        if source in df.columns and canonical not in df.columns:
+            renames[source] = canonical
+
+    # Older data calls the awarded value 'Tender Value in <rupee symbol>'.
+    if 'Awarded Value' not in df.columns:
+        value_columns = [c for c in df.columns if c.startswith('Tender Value')]
+        if value_columns:
+            renames[value_columns[0]] = 'Awarded Value'
+
+    return df.rename(columns=renames)
 
 # === UTILS ===
 def populate_keyword_dict(keyword_list):
@@ -57,6 +88,7 @@ csvs = glob.glob(os.path.join(MONTHLY_TENDERS_PATH, '*.csv'))
 for csv in csvs:
     filename = os.path.basename(csv)
     df = pd.read_csv(csv)
+    df = normalise_columns(df)
     df = df.drop_duplicates()
 
     df[['is_flood_tender', 'positive_keywords_dict', 'negative_keywords_dict']] = df.apply(flood_filter, axis=1, result_type='expand')
@@ -89,15 +121,7 @@ for csv in csvs:
             flood_df.at[idx, 'Season'] = ""
 
     # === SCHEME TAGGING ===
-    schemes = []
-    scheme_kw = {'ridf','sdrf','sopd','cidf','ltif','sdmf','ndrf'}
-    for _, row in flood_df.iterrows():
-        slug = f"{row.get('Tender Title :','')} {row.get('Tender Ref No :','')} {row.get('Work Description','')}"
-        slug = re.sub(r'[^a-zA-Z0-9 \n\.]', ' ', slug).lower()
-        slug_tokens = set(re.split(r'[-.,()_\s/]\s*', slug))
-        matches = list(slug_tokens & scheme_kw)
-        schemes.append(matches[0].upper() if matches else '')
-    flood_df['Scheme'] = schemes
+    flood_df['Scheme'] = flood_df.apply(tag_scheme, axis=1)
 
     # === EROSION FLAG ===
     erosion_kw = ['anti erosion', 'ae', 'a/e', 'a e', 'erosion', 'eroded', 'erroded', 'errosion']
@@ -114,21 +138,8 @@ for csv in csvs:
     )
 
     # === RESPONSE TYPE ===
-    immediate_kw = ['sdrf','im','i/m','gr','g/r','relief','immediate', 'emergency']
-    repair_kw = ['improvement', 'repair', 'restoration', 'raising', 'strengthening', 'renovation']
-    preparedness_kw = ['shelter', 'responder kit', 'aapda mitra', 'protection', 'stockpile']
-
-    def classify_response(row):
-        slug = f"{row.get('Tender Ref No :','')} {row.get('Tender Title :','')} {row.get('Work Description','')}"
-        slug = re.sub(r'[^a-zA-Z0-9 \n\.]', ' ', slug).lower()
-        if any(kw in slug for kw in immediate_kw):
-            return "Immediate Measures"
-        elif any(kw in slug for kw in repair_kw):
-            return "Repair and Restoration"
-        elif any(kw in slug for kw in preparedness_kw):
-            return "Preparedness Measures"
-        return "Others"
-
+    # Categories: Relief and Mitigation / Restoration Measures /
+    # Preparedness Measures / Others (see tender_tagging.py)
     flood_df['Response Type'] = flood_df.apply(classify_response, axis=1)
 
     # === SAVE TAGGED FILE ===

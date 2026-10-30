@@ -4,11 +4,18 @@ import re
 import os
 from difflib import SequenceMatcher
 
-tenders_df = pd.read_csv(r'D:\CDL\flood-data-ecosystem-Bihar\Sources\TENDERS\data\flood_tenders_all.csv')
+# Paths are resolved from this file's location so the scripts run from any
+# checkout on any OS.
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+TENDER_DATA_PATH = os.path.join(REPO_ROOT, 'Sources', 'TENDERS', 'data')
+MAPS_PATH = os.path.join(REPO_ROOT, 'Maps', 'br-ids-drr_shapefile')
+
+
+tenders_df = pd.read_csv(os.path.join(TENDER_DATA_PATH, 'flood_tenders_all.csv'))
 
 #HP_VILLAGES = gpd.read_file(os.getcwd()+'/Maps/assam_village_complete_with_revenueCircle_district_35_oct2022.geojson',
  #                              driver='GeoJSON')
-OD_VILLAGES = pd.read_csv(r'D:\CDL\flood-data-ecosystem-Bihar\Maps\br-ids-drr_shapefile\BIHAR_VILLAGES.csv', encoding='utf-8').dropna()
+OD_VILLAGES = pd.read_csv(os.path.join(MAPS_PATH, 'BIHAR_VILLAGES.csv'), encoding='utf-8').dropna()
 
 #Clean village names
 od_villages = OD_VILLAGES["vilnam_soi"]
@@ -76,12 +83,15 @@ OD_VILLAGES_dict = OD_VILLAGES[['vilnam_soi','dtname']].drop_duplicates(['vilnam
 #MAKE LIST OF DISTRICTS, REVENUE CIRCLES, SUB-DISTRICTS, BLOCKS and VILLAGES WITH NON-REPEATING NAMES
 problematic_blocksUPPERCASE = [] #Empty after forcefitted. #[rc.upper().strip() for rc in problematic_subdistricts.revenue_ci.unique()]
 problematic_blkUPPERCASE = [block.upper().strip() for block in problematic_blocks.block_name.unique()]
-od_villages = list(set(OD_VILLAGES_dict.keys())-set(problematic_blocksUPPERCASE)-set(problematic_blkUPPERCASE))
-od_blocks = list(set(od_blocks_dict.keys())-set(problematic_blocksUPPERCASE)-set(problematic_blkUPPERCASE))
-od_districts = list(set(OD_VILLAGES.dtname.dropna()))#-set(['KAMRUP','KAMRUP METRO']))
+od_villages = sorted(set(OD_VILLAGES_dict.keys())-set(problematic_blocksUPPERCASE)-set(problematic_blkUPPERCASE))
+od_blocks = sorted(set(od_blocks_dict.keys())-set(problematic_blocksUPPERCASE)-set(problematic_blkUPPERCASE))
+# sorted(), not list(set(...)): set iteration order varies between processes, and
+# tag_districts() keeps the FIRST district name found in a tender's text, so an
+# unsorted list made the geocoding of multi-district tenders differ run to run.
+od_districts = sorted(set(OD_VILLAGES.dtname.dropna()))#-set(['KAMRUP','KAMRUP METRO']))
 
 #assam_revenue_circles = list(set(assam_revenue_circles_dict.keys()))#-set(problematic_subdistricts.revenue_ci.unique())-set(problematic_sdts.sdtname_2.unique()))
-od_sub_districts = list(set(od_subdist_dict.keys())-set(problematic_blocks.block_name.unique())-set(problematic_blocks.block_name.unique()))
+od_sub_districts = sorted(set(od_subdist_dict.keys())-set(problematic_blocks.block_name.unique())-set(problematic_blocks.block_name.unique()))
 
 
 # METHOD-2 WEIGHTAGE METHOD
@@ -136,15 +146,51 @@ for idx, row in tenders_df.iterrows():
 
 # # GET TENDER DISTRICT BASED ON TITLE AND WORK DESCRIPTION
 
+# The worksite is frequently not named in the title or work description, but the
+# procuring office almost always is ("MINOR IRRIGATION DIVISION GAYA", "Harding
+# Road, Patna"). So search the authority and address columns too, in decreasing
+# order of how specific they are to the actual work, and fall back to any block
+# name that belongs to exactly one district.
+DISTRICT_SOURCE_COLUMNS = ['Tender Title :', 'Work Description', 'Tender Ref No :',
+                           'Issuing Address', 'Issuing Organisation Name',
+                           'Approving Organisation Name', 'Issuing Authority Name']
+DISTRICT_SOURCE_COLUMNS = [c for c in DISTRICT_SOURCE_COLUMNS if c in tenders_df.columns]
+
+cleaned_text = {column: tenders_df[column].astype(str)
+                                          .str.replace(r'[^a-zA-Z0-9 \n\.]', ' ', regex=True)
+                                          .str.lower()
+                for column in DISTRICT_SOURCE_COLUMNS}
+
+# Block names that map to exactly one district can identify it on their own.
+# Anything shorter than 4 characters collides too easily to be trusted.
+unambiguous_blocks = OD_VILLAGES[['block_name', 'dtname']].dropna().drop_duplicates()
+unambiguous_blocks['block_name'] = unambiguous_blocks['block_name'].str.strip()
+unambiguous_blocks = unambiguous_blocks.drop_duplicates(['block_name'], keep=False)
+unambiguous_blocks = unambiguous_blocks[unambiguous_blocks['block_name'].str.len() >= 4]
+unambiguous_blocks = unambiguous_blocks.sort_values(['block_name', 'dtname'])
+
 tenders_df['tender_district_title_description'] = None
-for idx, row in tenders_df.iterrows():
-    tender_slug = str(row['Tender Title :']) + ' ' + str(row['Work Description'])
-    tender_slug = re.sub(r'[^a-zA-Z0-9 \n\.]', ' ', tender_slug)
-    for district in od_districts:
-        if re.findall(r'\b%s\b'%district.lower().strip(), tender_slug.lower()):
-            tenders_df.loc[idx,'tender_district_title_description'] = district
-            break
-           
+tenders_df['district_matched_on'] = None
+
+
+def tag_districts(names_and_districts, source_label=None):
+    """Fill in districts still missing, searching the source columns in order."""
+    for column in DISTRICT_SOURCE_COLUMNS:
+        text = cleaned_text[column]
+        for name, district in names_and_districts:
+            missing = tenders_df['tender_district_title_description'].isna()
+            if not missing.any():
+                return
+            hit = missing & text.str.contains(r'\b%s\b' % re.escape(str(name).lower().strip()),
+                                              regex=True, na=False)
+            tenders_df.loc[hit, 'tender_district_title_description'] = district
+            tenders_df.loc[hit, 'district_matched_on'] = source_label or column
+
+
+tag_districts([(district, district) for district in od_districts])
+tag_districts(list(zip(unambiguous_blocks['block_name'], unambiguous_blocks['dtname'])),
+              source_label='block name')
+
 ## BLOCK
 # for idx, row in tenders_df.iterrows():
 #     if row['tender_district_title_description'] != None:
@@ -237,24 +283,18 @@ for idx, row in tenders_df.iterrows():
 
 # tenders_df['DISTRICT_FINALISED'] = ''
 
-for idx, row in tenders_df.iterrows():
-    # district1 = row['tender_district_externalReference']
-    district2 = row['tender_district_title_description']
-    # district3 = row['tender_district_location']
-    districts = [district2]
-    districts = set([x for x in districts if x!='NA'])
+# An un-matched district is None, not the string 'NA'. Treating the two as the
+# same is what previously let un-geocoded tenders be reported as successes and
+# then silently dropped by geocode_blocks_3.py.
+tenders_df['DISTRICT_FINALISED'] = tenders_df['tender_district_title_description'].fillna('NA')
 
-    if len(districts)==1:
-        DISTRICT_SELECTED = list(districts)[0]
-    elif len(districts)==0:
-        DISTRICT_SELECTED = 'NA'
-    else:
-        DISTRICT_SELECTED = 'CONFLICT'
-    
-    tenders_df.loc[idx,'DISTRICT_FINALISED'] = DISTRICT_SELECTED
+tenders_df.to_csv(os.path.join(TENDER_DATA_PATH, 'floodtenders_districtgeotagged.csv'),index=False)
 
-tenders_df.to_csv(r'D:\CDL\flood-data-ecosystem-Bihar\Sources\TENDERS\data\floodtenders_districtgeotagged.csv',index=False)
-
+geotagged = tenders_df[tenders_df['DISTRICT_FINALISED'] != 'NA']
 print('Total number of flood related tenders: ', tenders_df.shape[0])
-print('Number of tenders whose district could not be geo-tagged: ',tenders_df[tenders_df['DISTRICT_FINALISED']=='NA'].shape[0])
-print('Number of tenders whose district identification is a CONFLICT: ',tenders_df[tenders_df['DISTRICT_FINALISED']=='CONFLICT'].shape[0])
+print('Number of tenders geo-tagged to a district: {} ({:.1f}%)'.format(
+    geotagged.shape[0], geotagged.shape[0] / tenders_df.shape[0] * 100))
+print('Number of tenders whose district could not be geo-tagged: ',
+      tenders_df[tenders_df['DISTRICT_FINALISED']=='NA'].shape[0])
+print('\nDistrict identified from:')
+print(tenders_df['district_matched_on'].value_counts().to_string())
